@@ -6,3 +6,5 @@ python-dotenv>=1.0
 djangorestframework
 djangorestframework-simplejwt
 drf-yasg
+
+pillow

@@ -50,7 +50,7 @@ INSTALLED_APPS = [
     "drf_yasg",
     
     # Local apps
-    #"shop",
+    "shop",
     
 ]
 
