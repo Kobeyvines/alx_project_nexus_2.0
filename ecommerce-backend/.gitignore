@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.env
+*.sqlite3
+
+# Virtual env
+venv/
+.env/
+
+# Django
+media/
+staticfiles/
+
+# VSCode / IDE
+.vscode/
+.idea/
+
+# Byte-compiled / Logs
+*.log
+
+# Docker
+*.pid
+*.seed
+*.bak
+*.swp
+*.swo
+
+# pytest
+.cache/
+.coverage
