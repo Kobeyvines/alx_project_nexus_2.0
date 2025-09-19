@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "rest_framework_simplejwt",
     "drf_yasg",
+    "django_filters",
     
     # Local apps
     "shop",
@@ -137,6 +138,14 @@ USE_TZ = True
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
+# media settings
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
+
+
+
+
+
 # REST FRAMEWORK & JWT
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES":(
@@ -147,7 +156,9 @@ REST_FRAMEWORK = {
     ),
     "DEFAULT_PAGNATION_CLASS": "rest_framework.pagnation.pageNumberPagnation",
     "PAGE_SIZE": 10,
-    
+    "DEFAULT_FILTERS_BACKENDS":[
+        "django_filters.rest_framework.DjangoFiltersBackend",
+    ],
 }
 
 SIMPLE_JWT = {

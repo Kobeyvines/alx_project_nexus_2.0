@@ -6,5 +6,6 @@ python-dotenv>=1.0
 djangorestframework
 djangorestframework-simplejwt
 drf-yasg
+django-filter
 
 pillow
