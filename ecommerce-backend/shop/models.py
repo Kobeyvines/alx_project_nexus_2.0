@@ -1,4 +1,5 @@
 from django.db import models
+from django.contrib.auth.models import User
 
 # Create your models here.
 class Category(models.Model):
@@ -14,7 +15,7 @@ class Category(models.Model):
         verbose_name_plural = 'categories'
         
         def __str__(self):
-            return self.verbose_name
+            return self.name
         
 class Product(models.Model):
     category = models.ForeignKey(
@@ -44,3 +45,15 @@ class Product(models.Model):
     
     def __str__(self):
         return self.name
+    
+class Profile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="profile")
+    phone = models.CharField(max_length=20, blank=True, null=True)
+    address = models.CharField(max_length=255, blank=True, null=True)
+    bio = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    # Add more fields as needed
+
+    def __str__(self):
+        return f"{self.user.username}'s Profile"
