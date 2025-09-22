@@ -149,17 +149,17 @@ MEDIA_ROOT = BASE_DIR / "media"
 
 # REST FRAMEWORK & JWT
 REST_FRAMEWORK = {
-    "DEFAULT_AUTHENTICATION_CLASSES":(
+    "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
         "rest_framework.authentication.SessionAuthentication",
     ),
-    "DEFAULT_PERMISSION_CLASSES":(
+    "DEFAULT_PERMISSION_CLASSES": (
         "rest_framework.permissions.IsAuthenticatedOrReadOnly",
     ),
    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 10,
-    "DEFAULT_FILTERS_BACKENDS":[
-        "django_filters.rest_framework.DjangoFiltersBackend",
+    "DEFAULT_FILTER_BACKENDS":[
+        "django_filters.rest_framework.DjangoFilterBackend",
     ],
 }
 
@@ -174,16 +174,17 @@ SIMPLE_JWT = {
     
 
 SWAGGER_SETTINGS = {
-    'USE_SESSION_AUTH': False,
     "SECURITY_DEFINITIONS": {
         "Bearer": {
             "type": "apiKey",
-            "in": "header",
             "name": "Authorization",
+            "in": "header",
             "description": "JWT Authorization header using the Bearer scheme. Example: 'Bearer {token}'",
         }
     },
+    "USE_SESSION_AUTH": False,  # prevents Django session from overriding JWT
 }
+
 
 
 

@@ -22,10 +22,10 @@ router.register(r"cart", CartViewSet, basename="cart")
 router.register(r"cart-items", CartItemViewSet, basename="cart-items")  # ✅ fixed
 
 urlpatterns = [
+    path("users/me/", UserProfileView.as_view(), name="user-profile"),
     path("", include(router.urls)),
     path("auth/register/", RegisterView.as_view(), name="auth_register"),
-    path("auth/token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
-    path("auth/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
+    path("auth/login/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
+    path("auth/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
     path("auth/logout/", LogoutView.as_view(), name="auth_logout"),
-    path("users/me/", UserProfileView.as_view(), name="user-profile"),
 ]

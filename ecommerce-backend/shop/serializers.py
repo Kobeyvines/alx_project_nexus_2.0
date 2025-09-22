@@ -4,6 +4,9 @@ from .models import Category, Product, Profile, Cart, CartItem, Order
 from django.contrib.auth.models import User
 
 
+
+
+
 class CategorySerializer(serializers.ModelSerializer):
     slug = serializers.SlugField(required=False)
 
