@@ -156,7 +156,7 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES":(
         "rest_framework.permissions.IsAuthenticatedOrReadOnly",
     ),
-    "DEFAULT_PAGNATION_CLASS": "rest_framework.pagnation.pageNumberPagnation",
+   "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 10,
     "DEFAULT_FILTERS_BACKENDS":[
         "django_filters.rest_framework.DjangoFiltersBackend",
@@ -174,6 +174,7 @@ SIMPLE_JWT = {
     
 
 SWAGGER_SETTINGS = {
+    'USE_SESSION_AUTH': False,
     "SECURITY_DEFINITIONS": {
         "Bearer": {
             "type": "apiKey",

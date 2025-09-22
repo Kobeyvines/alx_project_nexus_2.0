@@ -1,7 +1,8 @@
 from django.utils.text import slugify
 from rest_framework import serializers
-from .models import Category, Product, Profile
+from .models import Category, Product, Profile, Cart, CartItem, Order
 from django.contrib.auth.models import User
+
 
 class CategorySerializer(serializers.ModelSerializer):
     slug = serializers.SlugField(required=False)
@@ -12,14 +13,12 @@ class CategorySerializer(serializers.ModelSerializer):
         read_only_fields = ["id"]
 
     def create(self, validated_data):
-        # auto generate slugs from name if not provided
         if not validated_data.get("slug"):
             validated_data["slug"] = slugify(validated_data["name"])
         return super().create(validated_data)
 
 
 class ProductSerializer(serializers.ModelSerializer):
-    # accept category by PK for writes; return nested category details for reads
     category = serializers.PrimaryKeyRelatedField(queryset=Category.objects.all(), write_only=True)
     category_details = CategorySerializer(source="category", read_only=True)
 
@@ -32,34 +31,29 @@ class ProductSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "category",
-            "category_details",  # ✅ fixed name
+            "category_details",
             "name",
             "slug",
             "description",
             "price",
             "stock",
-            "available",
             "image",
             "created",
-            "updated",
         ]
-        read_only_fields = ["id", "created", "updated", "category_details"]
+        read_only_fields = ["id", "created", "category_details"]
 
     def create(self, validated_data):
-        # auto generate slug if missing
         if not validated_data.get("slug"):
             validated_data["slug"] = slugify(validated_data["name"])
         return super().create(validated_data)
 
     def update(self, instance, validated_data):
-        # keep default behaviour
         if "slug" not in validated_data:
-            # optionally update slug on name change
             name = validated_data.get("name")
             if name:
                 validated_data["slug"] = slugify(name)
         return super().update(instance, validated_data)
-    
+
 
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
@@ -69,12 +63,11 @@ class RegisterSerializer(serializers.ModelSerializer):
         fields = ("username", "email", "password")
 
     def create(self, validated_data):
-        user = User.objects.create_user(
+        return User.objects.create_user(
             username=validated_data["username"],
             email=validated_data.get("email"),
             password=validated_data["password"]
         )
-        return user
 
 
 class LogoutSerializer(serializers.Serializer):
@@ -91,11 +84,9 @@ class ProfileSerializer(serializers.ModelSerializer):
         read_only_fields = ["created_at"]
 
 
-
-
 class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=False)
-    profile = ProfileSerializer(required=False)  # nested profile
+    profile = ProfileSerializer(required=False)
 
     class Meta:
         model = User
@@ -123,5 +114,35 @@ class UserSerializer(serializers.ModelSerializer):
         return instance
 
 
+class CartItemSerializer(serializers.ModelSerializer):
+    product_name = serializers.ReadOnlyField(source="product.name")
+    product_price = serializers.ReadOnlyField(source="product.price")
+
+    class Meta:
+        model = CartItem
+        fields = ["id", "product", "product_name", "product_price", "quantity"]
 
 
+class CartSerializer(serializers.ModelSerializer):
+    items = CartItemSerializer(many=True, read_only=True)
+    total_price = serializers.ReadOnlyField()
+
+    class Meta:
+        model = Cart
+        fields = ["id", "user", "items", "total_price", "created_at", "updated_at"]
+        read_only_fields = ["id", "user", "items", "total_price", "created_at", "updated_at"]
+
+
+class AddCartItemSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CartItem
+        fields = ["product", "quantity"]
+
+
+class OrderSerializer(serializers.ModelSerializer):
+    cart = CartSerializer(read_only=True)
+
+    class Meta:
+        model = Order
+        fields = ["id", "status", "total", "created_at", "updated_at", "checkout_date", "cart"]
+        read_only_fields = ["id", "total", "created_at", "updated_at", "checkout_date", "cart"]
