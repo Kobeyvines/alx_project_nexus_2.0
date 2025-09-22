@@ -14,6 +14,11 @@ class CategorySerializer(serializers.ModelSerializer):
         model = Category
         fields = ["id", "name", "slug"]
         read_only_fields = ["id"]
+        
+    def validate_name(self, value):
+        if Category.objects.filter(name__iexact=value).exists():
+            raise serializers.ValidationError("Category with this name already exists.")
+        return value
 
     def create(self, validated_data):
         if not validated_data.get("slug"):
@@ -22,28 +27,26 @@ class CategorySerializer(serializers.ModelSerializer):
 
 
 class ProductSerializer(serializers.ModelSerializer):
-    category = serializers.PrimaryKeyRelatedField(queryset=Category.objects.all(), write_only=True)
-    category_details = CategorySerializer(source="category", read_only=True)
-
-    image = serializers.ImageField(required=False, allow_null=True)
+    # Only keep writable fields
+    category = serializers.PrimaryKeyRelatedField(
+        queryset=Category.objects.all()
+    )
+    
     slug = serializers.SlugField(required=False)
     price = serializers.DecimalField(max_digits=10, decimal_places=2)
+    in_stock = serializers.ReadOnlyField() 
 
     class Meta:
         model = Product
         fields = [
-            "id",
-            "category",
-            "category_details",
             "name",
             "slug",
             "description",
             "price",
+            "category",
             "stock",
-            "image",
-            "created",
+            "in_stock"
         ]
-        read_only_fields = ["id", "created", "category_details"]
 
     def create(self, validated_data):
         if not validated_data.get("slug"):
@@ -51,11 +54,10 @@ class ProductSerializer(serializers.ModelSerializer):
         return super().create(validated_data)
 
     def update(self, instance, validated_data):
-        if "slug" not in validated_data:
-            name = validated_data.get("name")
-            if name:
-                validated_data["slug"] = slugify(name)
+        if "slug" not in validated_data and validated_data.get("name"):
+            validated_data["slug"] = slugify(validated_data["name"])
         return super().update(instance, validated_data)
+
 
 
 class RegisterSerializer(serializers.ModelSerializer):

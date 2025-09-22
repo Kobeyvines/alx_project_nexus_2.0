@@ -1,13 +1,16 @@
-from rest_framework import viewsets, filters, generics, permissions, status
+from rest_framework import viewsets, generics, permissions, status
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from rest_framework_simplejwt.tokens import RefreshToken
+from django_filters.rest_framework import DjangoFilterBackend, FilterSet, NumberFilter, BooleanFilter, CharFilter
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.generics import RetrieveAPIView
 from django.contrib.auth.models import User
+# DRF filters (for SearchFilter, OrderingFilter)
+from rest_framework import filters as drf_filters
 
 from .models import Category, Product, Profile, Cart, CartItem, Order, OrderItem
 from .serializers import (
@@ -23,6 +26,8 @@ from .serializers import (
     CartSerializer,
 )
 from .permissions import IsAdminOrReadOnly
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
 
 
 class StandardResultsSetPagination(PageNumberPagination):
@@ -31,6 +36,22 @@ class StandardResultsSetPagination(PageNumberPagination):
     max_page_size = 100
 
 
+# Custom Filters
+class ProductFilter(FilterSet):
+    min_price = NumberFilter(field_name="price", lookup_expr="gte")
+    max_price = NumberFilter(field_name="price", lookup_expr="lte")
+    in_stock = BooleanFilter(method='filter_in_stock')
+    category = CharFilter(field_name="category__slug", lookup_expr='iexact')
+
+    class Meta:
+        model = Product
+        fields = ["category", "min_price", "max_price", "in_stock"]
+        
+    def filter_in_stock(self, queryset, name, value):
+        if value:
+            return queryset.filter(stock__gt=0)
+        return queryset
+
 # -----------------------
 # Category & Product
 # -----------------------
@@ -38,22 +59,44 @@ class StandardResultsSetPagination(PageNumberPagination):
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
-    permission_classes = [AllowAny]
+    permission_classes = [IsAdminOrReadOnly]
     lookup_field = "slug"
+    
+    
+    @action(detail=True, methods=["get"], url_path="products", permission_classes=[IsAdminOrReadOnly])
+    def products(self, request, slug=None):
+        """
+        Returns all products belonging to this category.
+        """
+        category = self.get_object()
+        products = Product.objects.filter(category=category)
+        serializer = ProductSerializer(products, many=True)
+        return Response(serializer.data)
 
 
 class ProductViewSet(viewsets.ModelViewSet):
     queryset = Product.objects.select_related("category").all()
     serializer_class = ProductSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [IsAdminOrReadOnly]
     pagination_class = StandardResultsSetPagination
 
-    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ["category", "available"]
+    filter_backends = [DjangoFilterBackend, drf_filters.SearchFilter, drf_filters.OrderingFilter]
+    filterset_class = ProductFilter 
     search_fields = ["name", "description"]
-    ordering_fields = ["price", "created"]
-
+    ordering_fields = ["price", "created", "updated"]
+    ordering = ["-created"]  # default ordering
     lookup_field = "slug"
+    
+    
+    @swagger_auto_schema(manual_parameters=[
+        openapi.Parameter('min_price', openapi.IN_QUERY, description="Minimum price", type=openapi.TYPE_NUMBER),
+        openapi.Parameter('max_price', openapi.IN_QUERY, description="Maximum price", type=openapi.TYPE_NUMBER),
+        openapi.Parameter('in_stock', openapi.IN_QUERY, description="In stock", type=openapi.TYPE_BOOLEAN),
+        openapi.Parameter('category', openapi.IN_QUERY, description="Category slug", type=openapi.TYPE_STRING),
+    ])
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
 
 
 # -----------------------

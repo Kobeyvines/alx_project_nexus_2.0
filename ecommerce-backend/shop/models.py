@@ -33,6 +33,11 @@ class Product(models.Model):
     image = models.ImageField(upload_to='products/%Y/%m/%d', blank=True, null=True)
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
+    
+    @property
+    def in_stock(self):
+        return self.stock > 0 and self.available
+
 
     
     class Meta:
