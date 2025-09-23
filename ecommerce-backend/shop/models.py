@@ -72,16 +72,24 @@ class Cart(models.Model):
         ("abandoned", "Abandoned"),
     )
 
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="carts")
+    user = models.OneToOneField(  # 🔑 ensure 1 active cart per user
+        User, 
+        on_delete=models.CASCADE, 
+        related_name="cart"
+    )
+    
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="active")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def total_price(self):
         return sum(item.subtotal() for item in self.items.all())
+    
+    def total_items(self):
+        return sum(item.quantity for item in self.items.all())
 
     def __str__(self):
-        return f"Cart {self.id} - {self.user.username}"
+        return f"Cart {self.id} - {self.user.username} ({self.status})"
     
 
 class CartItem(models.Model):
@@ -96,7 +104,7 @@ class CartItem(models.Model):
         return self.product.price * self.quantity
 
     def __str__(self):
-        return f"{self.quantity} x {self.product.name}"
+        return f"{self.quantity} x {self.product.name} (Cart {self.cart.id})"
 
 
 

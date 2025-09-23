@@ -120,34 +120,48 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class CartItemSerializer(serializers.ModelSerializer):
-    product_name = serializers.ReadOnlyField(source="product.name")
-    product_price = serializers.ReadOnlyField(source="product.price")
+    product_name = serializers.CharField(source="product.name", read_only=True)
+    product_price = serializers.DecimalField(
+        source="product.price", max_digits=10, decimal_places=2, read_only=True
+    )
+    subtotal = serializers.SerializerMethodField()
 
     class Meta:
         model = CartItem
-        fields = ["id", "product", "product_name", "product_price", "quantity"]
+        fields = ["id", "product", "product_name", "product_price", "quantity", "subtotal"]
+        read_only_fields = ["id", "product_name", "product_price", "subtotal"]
+
+    def get_subtotal(self, obj):
+        return obj.product.price * obj.quantity
+
 
 
 class CartSerializer(serializers.ModelSerializer):
     items = CartItemSerializer(many=True, read_only=True)
-    total_price = serializers.ReadOnlyField()
+    total_price = serializers.SerializerMethodField()
 
     class Meta:
         model = Cart
-        fields = ["id", "user", "items", "total_price", "created_at", "updated_at"]
+        fields = ["id", "user", "items", "total_price", "status", "created_at", "updated_at"]
         read_only_fields = ["id", "user", "items", "total_price", "created_at", "updated_at"]
+        
+    def get_total_price(self, obj):
+        return obj.total_price()
 
 
 class AddCartItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = CartItem
         fields = ["product", "quantity"]
+        
+    def create(self, validated_data):
+        # cart is passed in perform_create
+        return CartItem.objects.create(**validated_data)
 
 
 class OrderSerializer(serializers.ModelSerializer):
-    cart = CartSerializer(read_only=True)
+    items = CartItemSerializer(many=True, read_only=True)
 
     class Meta:
         model = Order
-        fields = ["id", "status", "total", "created_at", "updated_at", "checkout_date", "cart"]
-        read_only_fields = ["id", "total", "created_at", "updated_at", "checkout_date", "cart"]
+        fields = ["id", "user", "created_at", "items"]

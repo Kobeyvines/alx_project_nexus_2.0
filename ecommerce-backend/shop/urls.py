@@ -19,7 +19,7 @@ router.register(r"products", ProductViewSet)
 router.register(r"users", AdminUserViewSet, basename="users")
 router.register(r"orders", OrderViewSet, basename="orders")
 router.register(r"cart", CartViewSet, basename="cart")
-router.register(r"cart-items", CartItemViewSet, basename="cart-items")  # ✅ fixed
+router.register(r"cart-items", CartItemViewSet, basename="cart-items") 
 
 urlpatterns = [
     path("users/me/", UserProfileView.as_view(), name="user-profile"),

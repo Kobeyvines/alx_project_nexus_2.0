@@ -7,6 +7,7 @@ from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.exceptions import ValidationError
 from rest_framework.generics import RetrieveAPIView
 from django.contrib.auth.models import User
 # DRF filters (for SearchFilter, OrderingFilter)
@@ -155,37 +156,44 @@ def get_me(request):
 # Cart & Cart Items
 # -----------------------
 
-class CartViewSet(viewsets.ModelViewSet):
+class CartViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = CartSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        if not self.request.user.is_authenticated:
-            return Cart.objects.none()  # avoids Swagger crash
+        # Allow fetching old carts (order history)
         return Cart.objects.filter(user=self.request.user)
-
-    def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
 
     @action(detail=False, methods=["get"], url_path="my-cart")
     def my_cart(self, request):
-        cart, _ = Cart.objects.get_or_create(user=request.user)
+        cart, _ = Cart.objects.get_or_create(user=request.user, status='active')
         serializer = self.get_serializer(cart)
         return Response(serializer.data)
 
     @action(detail=True, methods=["post"], url_path="checkout")
     def checkout(self, request, pk=None):
         cart = self.get_object()
+        
+        # Ensure only open/active carts can be checked out
+        if cart.status != "active":
+            return Response({"error": "Only active carts can be checked out"},
+                            status=status.HTTP_400_BAD_REQUEST)
+
         if not cart.items.exists():
-            return Response({"error": "Cart is empty"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Cart is empty"},
+                            status=status.HTTP_400_BAD_REQUEST)
 
         # Convert cart -> order
         order = Order.objects.create(user=request.user)
         for item in cart.items.all():
-            OrderItem.objects.create(order=order, product=item.product, quantity=item.quantity)
+            OrderItem.objects.create(
+                order=order, product=item.product, quantity=item.quantity
+            )
 
-        # Clear cart after checkout
+        # Close cart
         cart.items.all().delete()
+        cart.status = "checked_out"
+        cart.save()
 
         return Response(OrderSerializer(order).data, status=status.HTTP_201_CREATED)
 
@@ -193,15 +201,40 @@ class CartViewSet(viewsets.ModelViewSet):
 class CartItemViewSet(viewsets.ModelViewSet):
     serializer_class = CartItemSerializer
     permission_classes = [permissions.IsAuthenticated]
+    http_method_names = ["get", "post", "put", "patch", "delete"]
 
     def get_queryset(self):
-        if not self.request.user.is_authenticated:
-            return CartItem.objects.none()
-        return CartItem.objects.filter(cart__user=self.request.user)
+        cart, _ = Cart.objects.get_or_create(user=self.request.user, status="active")
+        return cart.items.all()
 
     def perform_create(self, serializer):
-        cart, _ = Cart.objects.get_or_create(user=self.request.user)
-        serializer.save(cart=cart)
+        cart, _ = Cart.objects.get_or_create(user=self.request.user, status="active")
+        product = serializer.validated_data["product"]
+        quantity = serializer.validated_data.get("quantity", 1)
+
+        # Check if item already exists
+        existing_item = CartItem.objects.filter(cart=cart, product=product).first()
+        if existing_item:
+            # Update quantity instead of inserting duplicate
+            existing_item.quantity += quantity
+            existing_item.save()
+            self.instance = existing_item  # so response returns updated item
+        else:
+            serializer.save(cart=cart)
+            
+        # rebind serializer to final instance so response uses latest state
+        serializer.instance = self.instance
+
+    def perform_update(self, serializer):
+        if not serializer.instance.cart.status == "active":
+            raise ValidationError("Cannot modify items in a checked-out cart.")
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        if not instance.cart.status == "active":
+            raise ValidationError("Cannot remove items from a checked-out cart.")
+        instance.delete()
+        
 
 
 # -----------------------
