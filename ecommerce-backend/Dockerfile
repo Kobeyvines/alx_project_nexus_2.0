@@ -21,11 +21,12 @@ RUN pip install --no-cache-dir -r requirements.txt gunicorn
 # Copy project files
 COPY . .
 
-# Collect static files (in case you serve them)
-RUN python manage.py collectstatic --noinput || true
+# Add entrypoint script
+COPY entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
 
 # Expose port
 EXPOSE 8000
 
-# Use Gunicorn instead of runserver
-CMD ["gunicorn", "core.wsgi:application", "--bind", "0.0.0.0:8000"]
+# Start via entrypoint
+CMD ["/app/entrypoint.sh"]
