@@ -187,6 +187,7 @@ SWAGGER_SETTINGS = {
     "USE_SESSION_AUTH": False,  # prevents Django session from overriding JWT
 }
 
+ALLOWED_HOSTS = ["ecommerce-backend.onrender.com"]
 
 
 
