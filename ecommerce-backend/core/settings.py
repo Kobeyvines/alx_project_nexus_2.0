@@ -32,12 +32,19 @@ SECRET_KEY = os.getenv("SECRET_KEY", 'django-insecure-q4g-^d^_&pkdtwy++@@p3smqa^
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DEBUG", "False").lower() == "true"
 
-ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
+ALLOWED_HOSTS = [
+    "localhost",
+    "127.0.0.1",
+    ".onrender.com",   # allow any Render subdomain
+]
+
+
 
 # Trust Render’s domain for CSRF
 CSRF_TRUSTED_ORIGINS = [
-    f"https://{os.getenv('RENDER_EXTERNAL_HOSTNAME', '')}"
-] if os.getenv("RENDER_EXTERNAL_HOSTNAME") else []
+    "https://*.onrender.com",
+]
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -188,7 +195,6 @@ SWAGGER_SETTINGS = {
     "USE_SESSION_AUTH": False,  # prevents Django session from overriding JWT
 }
 
-ALLOWED_HOSTS = ["ecommerce-backend.onrender.com"]
 
 
 
