@@ -1,6 +1,8 @@
 from django.contrib import admin
+from django.conf import settings
 from django.urls import path, include
 from django.views.generic import RedirectView
+from django.conf.urls.static import static
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
     TokenRefreshView,
@@ -17,18 +19,20 @@ schema_view = get_schema_view(
     ),
     public=True,
     permission_classes=(permissions.AllowAny,),
-    url="https://ecommerce-backend-bxd7.onrender.com/api/",  # 👈 important
+    url="https://ecommerce-backend-bxd7.onrender.com",  # 👈 only domain, no /api
 )
 
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/', include('shop.urls')),  # shop endpoints
-    path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
-    path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
-    
-    
-    # 👇 root redirect
-    path("", RedirectView.as_view(url="/swagger/", permanent=False)),
-    
+    path('api/', include('shop.urls')),  
+
+    # Swagger & Redoc under /api/
+    path('api/swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
+    path('api/redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
+
+    # Redirect root → swagger
+    path("", RedirectView.as_view(url="/api/swagger/", permanent=False)),
 ]
+
+urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
