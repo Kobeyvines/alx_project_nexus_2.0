@@ -76,11 +76,6 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-# Let WhiteNoise serve compressed files
-STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
-
-
-
 ROOT_URLCONF = 'core.urls'
 
 TEMPLATES = [
@@ -150,16 +145,12 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+
 
 # media settings
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
-
-
-# settings.py
-FORCE_SCRIPT_NAME = "/api"
-STATIC_URL = f"{FORCE_SCRIPT_NAME}/static/"
-
 
 
 # REST FRAMEWORK & JWT
