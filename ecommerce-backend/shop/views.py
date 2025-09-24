@@ -244,8 +244,73 @@ class CartItemViewSet(viewsets.ModelViewSet):
 class OrderViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     serializer_class = OrderSerializer
+    # Allow only GET, PATCH globally — POST is reserved for cancel (custom action)
+    http_method_names = ["get", "patch", "post"]
 
     def get_queryset(self):
         if not self.request.user.is_authenticated:
             return Order.objects.none()
         return Order.objects.filter(user=self.request.user)
+
+    def create(self, request, *args, **kwargs):
+        # Block normal POST order creation
+        return Response(
+            {"error": "Orders cannot be created directly. Use checkout instead."},
+            status=status.HTTP_405_METHOD_NOT_ALLOWED,
+        )
+
+    def update(self, request, *args, **kwargs):
+        return Response(
+            {"error": "PUT not allowed. Use PATCH to update order status."},
+            status=status.HTTP_405_METHOD_NOT_ALLOWED,
+        )
+
+    def partial_update(self, request, *args, **kwargs):
+        order = self.get_object()
+        status_value = request.data.get("status")
+
+        if not status_value:
+            return Response(
+                {"error": "Only 'status' can be updated."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Only admins can update statuses (except cancel handled below)
+        if not request.user.is_staff:
+            return Response(
+                {"error": "Only admins can update order status directly."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        order.status = status_value
+        order.save()
+        serializer = self.get_serializer(order)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=["get"], url_path="my-orders")
+    def my_orders(self, request):
+        orders = Order.objects.filter(user=request.user)
+        serializer = self.get_serializer(orders, many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=["post"], url_path="cancel")
+    def cancel(self, request, pk=None):
+        order = self.get_object()
+
+        # Ensure only the owner can cancel
+        if order.user != request.user:
+            return Response(
+                {"error": "You cannot cancel an order that isn’t yours."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        # Idempotent: if already canceled, just return it
+        if order.status == "canceled":
+            serializer = self.get_serializer(order)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        # Otherwise cancel it
+        order.status = "canceled"
+        order.save()
+        serializer = self.get_serializer(order)
+        return Response(serializer.data, status=status.HTTP_200_OK)
