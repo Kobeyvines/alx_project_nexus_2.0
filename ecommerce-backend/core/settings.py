@@ -32,19 +32,17 @@ SECRET_KEY = os.getenv("SECRET_KEY", 'django-insecure-q4g-^d^_&pkdtwy++@@p3smqa^
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DEBUG", "False").lower() == "true"
 
-ALLOWED_HOSTS = [
-    "localhost",
-    "127.0.0.1",
-    ".onrender.com",   # allow any Render subdomain
-]
+# Security and Hosts
+ALLOWED_HOSTS = os.getenv(
+    "ALLOWED_HOSTS",
+    "localhost,127.0.0.1,.onrender.com"
+).split(",")
 
-
-
-# Trust Render’s domain for CSRF
-CSRF_TRUSTED_ORIGINS = [
-    "https://*.onrender.com",
-]
-
+# CSRF trusted origins (needed for Django 4.0+ with HTTPS)
+CSRF_TRUSTED_ORIGINS = os.getenv(
+    "CSRF_TRUSTED_ORIGINS",
+    "https://*.onrender.com"
+).split(",")
 # Application definition
 
 INSTALLED_APPS = [
