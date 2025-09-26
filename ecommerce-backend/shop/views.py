@@ -160,19 +160,9 @@ class CartViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = CartSerializer
     permission_classes = [permissions.IsAuthenticated]
 
-   # shop/views.py
-
-def get_queryset(self):
-    user = self.request.user
-    if not user.is_authenticated:
-        return Cart.objects.none()  # or handle anonymous carts differently
-    return Cart.objects.filter(user=user)
-
-    # For get_or_create
-    if user.is_authenticated:
-        cart, _ = Cart.objects.get_or_create(user=user, status="active")
-    else:
-        cart = None  # Or handle guest cart logic
+    def get_queryset(self):
+        # Allow fetching old carts (order history)
+        return Cart.objects.filter(user=self.request.user)
 
     @action(detail=False, methods=["get"], url_path="my-cart")
     def my_cart(self, request):
@@ -222,18 +212,14 @@ class CartItemViewSet(viewsets.ModelViewSet):
         product = serializer.validated_data["product"]
         quantity = serializer.validated_data.get("quantity", 1)
 
-        # Check if item already exists
         existing_item = CartItem.objects.filter(cart=cart, product=product).first()
         if existing_item:
-            # Update quantity instead of inserting duplicate
             existing_item.quantity += quantity
             existing_item.save()
-            self.instance = existing_item  # so response returns updated item
+            serializer.instance = existing_item
         else:
             serializer.save(cart=cart)
-            
-        # rebind serializer to final instance so response uses latest state
-        serializer.instance = self.instance
+
 
     def perform_update(self, serializer):
         if not serializer.instance.cart.status == "active":
