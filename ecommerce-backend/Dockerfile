@@ -16,7 +16,9 @@ RUN apt-get update && apt-get install -y \
 
 # Install Python dependencies
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt gunicorn
+RUN python -m pip install --upgrade pip
+RUN pip install --no-cache-dir --default-timeout=100 -r requirements.txt gunicorn
+
 
 # Copy project files
 COPY . .

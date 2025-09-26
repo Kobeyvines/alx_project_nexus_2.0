@@ -19,7 +19,7 @@ schema_view = get_schema_view(
     ),
     public=True,
     permission_classes=(permissions.AllowAny,),
-    url="https://ecommerce-backend-bxd7.onrender.com",  # 👈 only domain, no /api
+    url="https://alx-project-nexus-2-0.onrender.com",  # 👈 only domain, no /api
 )
 
 

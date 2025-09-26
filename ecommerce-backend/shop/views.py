@@ -160,9 +160,19 @@ class CartViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = CartSerializer
     permission_classes = [permissions.IsAuthenticated]
 
-    def get_queryset(self):
-        # Allow fetching old carts (order history)
-        return Cart.objects.filter(user=self.request.user)
+   # shop/views.py
+
+def get_queryset(self):
+    user = self.request.user
+    if not user.is_authenticated:
+        return Cart.objects.none()  # or handle anonymous carts differently
+    return Cart.objects.filter(user=user)
+
+    # For get_or_create
+    if user.is_authenticated:
+        cart, _ = Cart.objects.get_or_create(user=user, status="active")
+    else:
+        cart = None  # Or handle guest cart logic
 
     @action(detail=False, methods=["get"], url_path="my-cart")
     def my_cart(self, request):
